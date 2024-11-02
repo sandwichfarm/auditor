@@ -2,7 +2,7 @@
 
 A framework to test relays against their advertised supported NIPs.
 
-# usage
+# Basic usage
 
 ```js
 
@@ -14,15 +14,19 @@ audit.addSuite('Nip50')
 audit.removeSuite('Nip01') //Nip01 runs by default.
 const results = audit.test(relay)
 ```
+# Contribute
 
-Writing a suite
-
-TODO.
-
-Write a suite's test
+## Writing a Suite 
 
 ```js
+//TODO: More complicated to demonstrate because of conventions.
+//...and using the Nip01 Suite as an example here is horrible because it's
+//inevitably the most complex.
+```
 
+## Writing a Suite's Test 
+Simple example of a suite test.
+```ts
 import { ISuiteTest, SuiteTest } from '#base/SuiteTest.js';
 import { ISuite } from '#base/Suite.js';
 

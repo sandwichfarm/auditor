@@ -12,8 +12,8 @@ export interface Nip50Filter extends INip01Filter {
 
 export class Search extends SuiteTest implements ISuiteTest {
   readonly slug: string = 'Search';
-  contents: string[] = [];
-  searches: string[] = [];
+  contentsRecievedWithTerms: string[] = [];
+  searchTermsToFilter: string[] = [];
   completeOn: CompleteOnTypeArray = ['off'];
   
   constructor(suite: ISuite) {
@@ -23,36 +23,32 @@ export class Search extends SuiteTest implements ISuiteTest {
 
   get filters(): Nip50Filter[] {
     const filters: Nip50Filter[] = [];
-    this.searches = this.ingestor.poop()
-    if(this.searches.length > 5){
-      this.searches.length = 5;
+    this.searchTermsToFilter = this.ingestor.poop() as string[];
+    if(this.searchTermsToFilter.length > 5){
+      this.searchTermsToFilter.length = 5;
     }
-    for(const search of this.searches){
+    for(const search of this.searchTermsToFilter){
       filters.push({ search, limit:1 });
     }
     return filters
   }
 
   onMessageEvent(message: RelayEventMessage){
-    if(this.totalEvents >= this.searches.length) {
-      if(this.socket.CONNECTED)
-        return this.socket.terminate();
-    } 
     const note = message[2];
-    this.contents.push(note.content);
+    this.contentsRecievedWithTerms.push(note.content);
   }
 
   test({behavior, conditions}) {
-    conditions.toBeOk(this.searches.length > 0, 'data sample size is sufficient for test');
+    conditions.toBeOk(this.searchTermsToFilter.length > 0, 'data sample size is sufficient for test');
 
-    const eventsContainedTerms = this.contents.some(content => {
-      return this.searches.some(term => {
+    const eventsContainedTerms = this.contentsRecievedWithTerms.some(content => {
+      return this.searchTermsToFilter.some(term => {
         const regex = new RegExp(term, 'i'); 
         return regex.test(content);
       });
     });
     
-    behavior.toEqual(this.contents.length, this.searches.length, 'returned same number of events as searches');
+    behavior.toEqual(this.contentsRecievedWithTerms.length, this.searchTermsToFilter.length, 'returned same number of events as searchTermsToFilter');
     behavior.toBeOk(eventsContainedTerms, 'returned events contain search terms');
   }
 }
