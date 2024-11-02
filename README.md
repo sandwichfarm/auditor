@@ -1,13 +1,16 @@
 # @nostrwatch/auditor
 
-A framework to test relays against their advertised supported NIPs.
-
+A framework to test relays against their advertised supported NIPs. (name pending)
 
 **Features**
 - Minimal boilerplate
 - Familiar testing patterns
 - Overloads for more advanced testing cases
+- Nip Support detection via NIP-11
 - Live data Sampler for more accurate test results. 
+
+
+![@nostrwatch/auditor console screenshot](.assets/output.png)
 
 # Basic usage
 
