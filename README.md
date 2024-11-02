@@ -2,10 +2,16 @@
 
 A framework to test relays against their advertised supported NIPs.
 
+
+**Features**
+- Minimal boilerplate
+- Familiar testing patterns
+- Overloads for more advanced testing cases
+- Live data Sampler for more accurate test results. 
+
 # Basic usage
 
 ```js
-
 import Auditor from "@nostrwatch/auditor"
 
 const relay = "wss://relay.damus.io"
@@ -25,8 +31,8 @@ const results = audit.test(relay)
 ```
 
 ## Writing a Suite's Test 
-Simple example of a suite test.
-```ts
+Simple example of a suite test. Suite Tests are intended to be compact with explicit purposes. 
+```js
 import { ISuiteTest, SuiteTest } from '#base/SuiteTest.js';
 import { ISuite } from '#base/Suite.js';
 
