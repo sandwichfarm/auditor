@@ -1,3 +1,5 @@
+> alpha af
+
 # @nostrwatch/auditor
 
 A framework to test relays against their advertised supported NIPs. (name pending)
