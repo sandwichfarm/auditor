@@ -36,21 +36,15 @@ const results = audit.test(relay)
 ## Writing a Suite's Test 
 Simple example of a suite test. Suite Tests are intended to be compact with explicit purposes. 
 ```js
-import { ISuiteTest, SuiteTest } from '#base/SuiteTest.js';
 import { ISuite } from '#base/Suite.js';
+import { ISuiteTest, SuiteTest } from '#base/SuiteTest.js';
 
 import { INip01Filter } from '../interfaces/index.js';
 
 export class FilterLimit extends SuiteTest implements ISuiteTest {
   readonly slug: string = 'FilterLimit';
-  totalEvents: number = 0;
   maxEvents: number = 10;
-
   limit: number = 1
-
-  constructor(suite: ISuite) {
-    super(suite);
-  }
 
   get filters(): INip01Filter[] {
     return [{ limit: this.limit }]
