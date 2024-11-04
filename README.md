@@ -16,6 +16,18 @@ A framework to test relays against their advertised supported NIPs. (name pendin
 
 # Basic usage
 
+Test detected NIPs (will also test NIP-11 against schema)
+
+```js
+import Auditor from "@nostrwatch/auditor"
+
+const relay = "wss://relay.damus.io"
+const audit = new Auditor(options)
+await audit.detectSupportedNips()
+const results = audit.test(relay)
+```
+
+Test only NIP-50
 ```js
 import Auditor from "@nostrwatch/auditor"
 
@@ -25,6 +37,29 @@ audit.addSuite('Nip50')
 audit.removeSuite('Nip01') //Nip01 runs by default.
 const results = audit.test(relay)
 ```
+
+If you do not detect nips or add any Suites, NIP-01 will run by default
+```js
+import Auditor from "@nostrwatch/auditor"
+
+const relay = "wss://relay.damus.io"
+const audit = new Auditor(options)
+const results = audit.test(relay)
+//runs NIP-01 suite
+```
+
+_**`not yet implemnented`**_ Load your own suite or overload a built-in suite with your own. (overloading individuals tests in a suite is not yet supported)
+```js
+import Auditor from "@nostrwatch/auditor"
+import MyNip01Test as Nip01 from from "./my-nip01-test.js"
+
+const relay = "wss://relay.damus.io"
+const audit = new Auditor(options)
+audit.loadSuite(Nip01)
+audit.addSuite('Nip50') 
+const results = audit.test(relay)
+```
+
 # Contribute
 
 ## Writing a Suite 
