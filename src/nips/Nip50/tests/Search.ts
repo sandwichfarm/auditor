@@ -2,7 +2,6 @@
 import { CompleteOnTypeArray, ISuiteTest, SuiteTest } from '#base/SuiteTest.js';
 import { ISuite } from '#base/Suite.js';
 
-import { Nip01ClientMessageGenerator } from '#nips/Nip01/index.js';
 import { INip01Filter, Note, RelayEventMessage } from '#nips/Nip01/interfaces/index.js';
 import { ContentIngestor } from '../ingestors/ContentIngestor.js';
 
@@ -41,7 +40,10 @@ export class Search extends SuiteTest implements ISuiteTest {
   test({behavior, conditions}) {
     conditions.toBeOk(this.searchTermsToFilter.length > 0, 'data sample size is sufficient for test');
 
-    const eventsContainedTerms = this.contentsRecievedWithTerms.some(content => {
+    console.log(this.searchTermsToFilter)
+    console.log(this.contentsRecievedWithTerms)
+
+    const eventsContainedTerms = this.contentsRecievedWithTerms.every(content => {
       return this.searchTermsToFilter.some(term => {
         const regex = new RegExp(term, 'i'); 
         return regex.test(content);

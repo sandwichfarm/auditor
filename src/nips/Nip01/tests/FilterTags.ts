@@ -1,11 +1,7 @@
-import { Sampler } from "#base/Sampler.js"; 
-
-import { CompleteOnTypeArray, ISuiteTest, SuiteTest } from '#base/SuiteTest.js';
+import { ISuiteTest, SuiteTest } from '#base/SuiteTest.js';
 import { ISuite } from '#base/Suite.js';
 
-import { Nip01ClientMessageGenerator } from '../index.js';
 import { INip01Filter, Note, RelayEventMessage } from '../interfaces/index.js';
-import { KindIngestor } from "../ingestors/KindIngestor.js";
 import { SingleTagIngestor } from "../ingestors/SingleTagIngestor.js";
 import { truncate } from "#src/utils/string.js";
 
@@ -19,7 +15,7 @@ export class FilterTags extends SuiteTest implements ISuiteTest {
 
   constructor(suite: ISuite) {
     super(suite);
-    this.registerIngestor(new SingleTagIngestor());
+    this.registerIngestor(new SingleTagIngestor(1));
   }
 
   get filters(): INip01Filter[] {

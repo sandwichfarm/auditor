@@ -13,7 +13,7 @@ import Logger from "#base/Logger.js";
 export class Sampler {
   private ws: WebSocket;
   private subId: string = "test";
-  private _maximumSamples: number = 200;
+  private _maximumSamples: number = 500;
   private _timeout: ReturnType<typeof setTimeout>;
   private _timeoutMs: number = 5000;
   private _totalSamples: number = 0;  

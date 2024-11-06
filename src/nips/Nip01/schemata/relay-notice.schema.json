@@ -2,7 +2,7 @@
   "type": "array",
   "items": [
     { "const": "NOTICE" },
-    { "type": "string", "description": "message" }
+    { "type": "string" }
   ],
   "minItems": 2,
   "maxItems": 2

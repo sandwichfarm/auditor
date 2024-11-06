@@ -1,7 +1,7 @@
 {
   "name": "@nostrwatch/auditor",
   "type": "module",
-  "packageManager": "yarn@4.5.0",
+  "packageManager": "yarn@4.5.1",
   "main": "./dist/server/index.js",
   "module": "./dist/web.js",
   "types": "./dist/types/index.d.ts",

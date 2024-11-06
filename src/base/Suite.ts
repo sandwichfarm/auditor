@@ -215,7 +215,12 @@ export abstract class Suite implements ISuite {
 
   protected validateMessage(message: INip01RelayMessage): void {
     const key = message?.[0] ?? "unset"
-    this.expect.message.toBeOk(this?.messageValidators?.[key]?.validate, `message ${key} is valid: ${truncate(JSON.stringify(message))}`);
+    if(!this?.messageValidators?.[key]){
+      this.logger.warn(`No validator found for message ${key}`, 2);
+      return;
+    }
+    const isValid = this?.messageValidators?.[key]?.validate(message)
+    this.expect.message.toBeOk(isValid, `message ${key} is valid: ${truncate(JSON.stringify(message))}`);
     // if(this?.messageValidators?.[key]?.validate) {
     //   this.logCode('message', key, this.messageValidators[key].validate(message));   
     // }

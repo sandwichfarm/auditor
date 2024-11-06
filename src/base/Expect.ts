@@ -93,8 +93,8 @@ export class AssertWrap {
 }
 
 export class Expect { 
-  conditions: AssertWrap = new AssertWrap()
-  message: AssertWrap = new AssertWrap()
-  json: AssertWrap = new AssertWrap()
+  conditions: AssertWrap = new AssertWrap({ verbose: true })
+  message: AssertWrap = new AssertWrap({ verbose: true })
+  json: AssertWrap = new AssertWrap({ verbose: true })
   behavior: AssertWrap = new AssertWrap({ verbose: true })
 }

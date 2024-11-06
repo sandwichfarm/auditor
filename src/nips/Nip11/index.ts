@@ -1,8 +1,7 @@
 import type { WebSocketWrapper as WebSocket } from '#base/WebSocketWrapper.js';
-import fetch from 'cross-fetch';
 
 import { Suite } from '#base/Suite.js';
-import type { ISuite, ISuiteResult } from '#base/Suite.js';
+import type { ISuite } from '#base/Suite.js';
 
 import nip11Schema from './schemata/nip11.schema.json' with { type: "json" };
 import { SchemaValidator } from '#src/base/SchemaValidator.js';

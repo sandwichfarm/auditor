@@ -225,9 +225,9 @@ export abstract class SuiteTest implements ISuiteTest {
   evaluate(codes: Partial<ISuiteTestResult>): boolean {
     const { messageCodes, jsonCodes, behaviorCodes } = codes as ISuiteTestResult;
   
-    const allEmpty = !Object.keys(messageCodes).length && 
-                     !Object.keys(jsonCodes).length && 
-                     !Object.keys(behaviorCodes).length;
+    const allEmpty = !Object.keys(this.expect.behavior).length && 
+                     !Object.keys(this.expect.json).length && 
+                     !Object.keys(this.expect.message).length
   
     if (allEmpty) return false;
   
@@ -280,11 +280,12 @@ export abstract class SuiteTest implements ISuiteTest {
   }
 
   _onMessageEvent(message: RelayEventMessage): boolean  {
-    if(this.completeOn.includes("maxEvents") && this.totalEvents >= this.maxEvents) {
-      this.test(this.expect);
-      this.conclude()
-      return false;
-    }
+    //this should fire if EOSE was not recieved. 
+    // if(this.completeOn.includes("maxEvents") && this.totalEvents >= this.maxEvents) {
+    //   this.test(this.expect);
+    //   this.conclude()
+    //   return false;
+    // }
     this.totalEvents++;
     return true;
   }
