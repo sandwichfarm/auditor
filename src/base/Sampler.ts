@@ -20,6 +20,7 @@ export class Sampler {
   private _abort: boolean = false;
   private signal = new EventEmitter();
   private logger: Logger = new Logger('@nostrwatch/auditor:Sampler');
+  private _ingestors: Ingestor[] = [];  
 
   constructor(ws: WebSocket, maximumSamples?: number, timeout?: number) {
     this.ws = ws;
@@ -27,10 +28,28 @@ export class Sampler {
     if(timeout) this._timeoutMs = timeout
   }
 
+  get ingestors(): Ingestor[] {
+    return this._ingestors;
+  }
+
+  get samplable() {
+    return this.ingestors.length > 0;
+  }
+
+  private set ingestor(ingestor: Ingestor) {
+    this._ingestors.push(ingestor);
+  }
+
+  async runIngestors(note: Note) {
+    for(const ingestor of this._ingestors) {
+      ingestor.feed(note);
+    }
+    await Promise.allSettled(this._ingestors.map(ingestor => ingestor.completed()));
+    this.abort()
+  }
+
   registerIngestor(ingestor: Ingestor) {
-    ingestor.registerSignal(this.signal);
-    this.signal.on('ingestor:abort', this.abort.bind(this));
-    this.signal.on('ingest', ingestor.feed.bind(ingestor));
+    this.ingestor = ingestor;
   }
 
   setupHandlers() {

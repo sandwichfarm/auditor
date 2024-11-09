@@ -7,9 +7,8 @@ export class RangeIngestor extends Ingestor {
   feed(note: Note): void {
     if(!this?.signal) throw new Error('Ingestor not registered with signal');
     this.timestamps.add(note.created_at);
-    if(this.timestamps.size >= this.sampleSize) {
-      this.signal.emit('ingestor:abort');
-    }
+    if(this.timestamps.size >= this.sampleSize) 
+      this.complete();
   }
 
   poop(): number[] {

@@ -12,11 +12,12 @@ import Logger from '#base/Logger.js';
 import { Nip01ClientMessageGenerator } from "#src/nips/Nip01/index.js";
 import { RelayEventMessage } from "#src/nips/Nip01/interfaces/RelayEventMessage.js";
 
-import { Expect } from "./Expect.js";
+import { AssertWrap, Expect, IExpectErrors, IExpectResult, IExpectResults } from "./Expect.js";
 
 import { INip01Filter } from "#src/nips/Nip01/interfaces/Filter.js";
 import { Note } from "#src/nips/Nip01/interfaces/Note.js";
 import chalk from "chalk";
+import { SuiteState } from "./SuiteState.js";
 
 export type CompleteOnType = "off" | "maxEvents" | "EOSE";
 export type CompleteOnTypeArray = [CompleteOnType, ...CompleteOnType[]];
@@ -34,32 +35,28 @@ export interface ISuiteTest {
   data: any;
   run(): any;
   _onMessageEvent(message: RelayEventMessage): boolean;
+  test(methods: Expect): void;
+  precheck(conditions: AssertWrap): void;  
 } 
 
 export interface ISuiteTestResult {
   testKey: string;
-  pass: boolean;
+  passing: boolean;
   passrate: number;
-  reason: string;
-  passed: string[];
-  failed: string[];
+  passed: IExpectResults;
+  failed: IExpectResults;
   notices: string[];
-  messageCodes: Record<string, boolean | null>;
-  jsonCodes: Record<string, boolean | null>;
-  behaviorCodes: Record<string, boolean | null>;  
+  errors: IExpectErrors;
 }
 
 export const defaultSuiteTestResult: ISuiteTestResult = {
   testKey: "unset",
-  pass: false,
-  reason: "",
+  passing: false,
   passrate: 0,
   passed: [],
   failed: [],
   notices: [],
-  messageCodes: {},
-  jsonCodes: {},
-  behaviorCodes: {}
+  errors: []
 }
 
 export abstract class SuiteTest implements ISuiteTest {
@@ -89,9 +86,8 @@ export abstract class SuiteTest implements ISuiteTest {
   totalEvents: number = 0;
   completeOn: CompleteOnTypeArray = ['maxEvents', 'EOSE'];
 
-  constructor(suite: ISuite, ingestor?: Ingestor) {
+  constructor(suite: ISuite) {
     this.suite = suite;
-    if(ingestor) this.registerIngestor(ingestor);
     this.logger.registerLogger('pass', 'info', chalk.green.bold);
     this.logger.registerLogger('fail', 'info', chalk.redBright.bold);
   }
@@ -104,20 +100,47 @@ export abstract class SuiteTest implements ISuiteTest {
     return this.suite.socket; 
   }
 
+  get state(): SuiteState {
+    return this.suite.state;
+  }
+
   protected get expect(): Expect {
     return this._expect;
   }
 
-  registerIngestor(ingestor: Ingestor) {  
-    this.ingestor = ingestor;
-    this.sampler = new Sampler(this.suite.socket);
-    this.sampler.registerIngestor(this.ingestor);
+  suiteIngest(ingestor: Ingestor[] | Ingestor) {
+    if(Array.isArray(ingestor)) {
+      this.suite.registerIngestors(ingestor);
+    }
+    else {
+      this.suite.registerIngestor(ingestor);
+    }
   }
 
-  initSampler(ingestor: Ingestor){
+  suiteTestIngest(ingestor: Ingestor[] | Ingestor) {
+    if(Array.isArray(ingestor)) {
+      this.registerIngestors(ingestor);
+    }
+    else {
+      this.registerIngestor(ingestor);
+    }
+  }
+
+  private registerIngestors(ingestors: Ingestor[]) {
+    if(ingestors) {
+      ingestors.forEach(ingestor => this.registerIngestor(ingestor));
+    }
+  }
+
+  private registerIngestor(ingestor: Ingestor) {  
+    if(!this?.sampler)
+      this.initSampler();
+    this.sampler.registerIngestor(ingestor);
+  }
+
+  initSampler(){
     if(this.suite.socket === undefined) throw new Error('socket of Suite must be set');
     this.sampler = new Sampler(this.suite.socket);
-    this.sampler.registerIngestor(ingestor);
   }
 
   EVENT(event: Note) {
@@ -138,6 +161,8 @@ export abstract class SuiteTest implements ISuiteTest {
     };
   }
 
+  async screen(conditions: AssertWrap): Promise<void> {}
+
   async prepare() {
     this.REQ(this.filters)
     await this.testable();
@@ -145,7 +170,8 @@ export abstract class SuiteTest implements ISuiteTest {
 
   async run() {
     this.logger.info(`BEGIN: ${this.slug}`, 2);
-    if(this.sampler !== undefined) {
+    
+    if(this?.sampler?.samplable) {
       await this.sampler.sample();
     }
 
@@ -161,19 +187,20 @@ export abstract class SuiteTest implements ISuiteTest {
     if(this.slug === 'unset') throw new Error('slug of SuiteTest must be set');
 
     this.timeoutBegin();
+    await this.screen(this.expect.conditions)
+    this.state.set('okConditions', this.expect.conditions.passed);
     await this.prepare();
     this.finish();
     return this.resulter.result
   }
 
-  public logCode(type: ISuiteCodeTypes, plainLanguageCode: string, result: boolean): void {
-    //console.log(type, plainLanguageCode, result);
-    this.suite.logCode(type, plainLanguageCode, result);
-  }
+  // public logCode(type: ISuiteCodeTypes, plainLanguageCode: string, result: boolean): void {
+  //   this.suite.logCode(type, plainLanguageCode, result);
+  // }
 
-  public getCode(type: ISuiteCodeTypes, plainLanguageCode: string): boolean | null | undefined {
-    return this.suite.getCode(type, plainLanguageCode);
-  }
+  // public getCode(type: ISuiteCodeTypes, plainLanguageCode: string): boolean | null | undefined {
+  //   return this.suite.getCode(type, plainLanguageCode);
+  // }
 
   protected newSubId() {
     this.subId = generateSubId()
@@ -199,72 +226,72 @@ export abstract class SuiteTest implements ISuiteTest {
 
   private finish(): void {
     this.logger.debug(`testKey: ${this.suite.testKey}`, 2);
-    const codes = this.suite.collectCodes();
-    const passed = this.passed(codes);
-    const failed = this.failed(codes);
-    const pass = failed.length === 0;
+    // const codes = this.suite.collectCodes();
+    const { passed, failed, passing, errors } = this.expect;
     const passrate = passed.length / (passed.length + failed.length);
-    const reason = this.reason(codes);
     const notices = this.notices;
     const result = {
       testKey: this.suite.testKey,
-      pass,
+      passing,
       passrate,
-      reason,
       passed,
       failed,
       notices,
-      ...codes
+      errors
     } as ISuiteTestResult;
 
-    this.logger.custom(pass? 'pass': 'fail', `${this.slug}`, 2);
+    this.logger.custom(passed? 'pass': 'fail', `${this.slug}`, 2);
     
     this.resulter.set(result as ISuiteTestResult);
   }
 
-  evaluate(codes: Partial<ISuiteTestResult>): boolean {
-    const { messageCodes, jsonCodes, behaviorCodes } = codes as ISuiteTestResult;
-  
-    const allEmpty = !Object.keys(this.expect.behavior).length && 
-                     !Object.keys(this.expect.json).length && 
-                     !Object.keys(this.expect.message).length
-  
-    if (allEmpty) return false;
-  
-    const messagePass = Object.values(messageCodes).every(code => code === true);
-    const jsonPass = Object.values(jsonCodes).every(code => code === true);
-    const behaviorPass = Object.values(behaviorCodes).every(code => code === true);
-  
-    return messagePass && jsonPass && behaviorPass;
+  passed(): void {
+
   }
 
-  reason(codes: Partial<ISuiteTestResult>): string {
-    const { messageCodes, jsonCodes, behaviorCodes } = codes as ISuiteTestResult;
-    const failedMessages = Object.entries(messageCodes).filter( ([_, code]) => code === false);
-    const failedJsons = Object.entries(jsonCodes).filter( ([_, code]) => code === false);
-    const failedBehaviors = Object.entries(behaviorCodes).filter( ([_, code]) => code === false);
-    const failed = [...failedMessages, ...failedJsons, ...failedBehaviors];
-    if(failed.length === 0) return 'all good 🤙';
-    return failed.map( ([key, _]) => key).join(', ').toLowerCase().replace(/_/g, ' ');
-  }
+  // evaluate(codes: Partial<ISuiteTestResult>): boolean {
+  //   const { messageCodes, jsonCodes, behaviorCodes } = codes as ISuiteTestResult;
+  
+  //   const allEmpty = !Object.keys(this.expect.behavior).length && 
+  //                    !Object.keys(this.expect.json).length && 
+  //                    !Object.keys(this.expect.message).length
+  
+  //   if (allEmpty) return false;
+  
+  //   const messagePass = Object.values(messageCodes).every(code => code === true);
+  //   const jsonPass = Object.values(jsonCodes).every(code => code === true);
+  //   const behaviorPass = Object.values(behaviorCodes).every(code => code === true);
+  
+  //   return messagePass && jsonPass && behaviorPass;
+  // }
 
-  private passed(codes: Partial<ISuiteTestResult>): string[] {
-    const { messageCodes, jsonCodes, behaviorCodes } = codes as ISuiteTestResult;
-    const passedMessages = Object.entries(messageCodes).filter( ([_, code]) => code === true);
-    const passedJsons = Object.entries(jsonCodes).filter( ([_, code]) => code === true);
-    const passedBehaviors = Object.entries(behaviorCodes).filter( ([_, code]) => code === true);
-    const passed = [...passedMessages, ...passedJsons, ...passedBehaviors];
-    return passed.map( ([key, _]) => key);
-  }
+  // reason(codes: Partial<ISuiteTestResult>): string {
+  //   const { messageCodes, jsonCodes, behaviorCodes } = codes as ISuiteTestResult;
+  //   const failedMessages = Object.entries(messageCodes).filter( ([_, code]) => code === false);
+  //   const failedJsons = Object.entries(jsonCodes).filter( ([_, code]) => code === false);
+  //   const failedBehaviors = Object.entries(behaviorCodes).filter( ([_, code]) => code === false);
+  //   const failed = [...failedMessages, ...failedJsons, ...failedBehaviors];
+  //   if(failed.length === 0) return 'all good 🤙';
+  //   return failed.map( ([key, _]) => key).join(', ').toLowerCase().replace(/_/g, ' ');
+  // }
 
-  private failed(codes: Partial<ISuiteTestResult>): string[] {
-    const { messageCodes, jsonCodes, behaviorCodes } = codes as ISuiteTestResult;
-    const failedMessages = Object.entries(messageCodes).filter( ([_, code]) => code === false);
-    const failedJsons = Object.entries(jsonCodes).filter( ([_, code]) => code === false);
-    const failedBehaviors = Object.entries(behaviorCodes).filter( ([_, code]) => code === false);
-    const failed = [...failedMessages, ...failedJsons, ...failedBehaviors];
-    return failed.map( ([key, _]) => key);
-  }
+  // private passed(codes: Partial<ISuiteTestResult>): string[] {
+  //   const { messageCodes, jsonCodes, behaviorCodes } = codes as ISuiteTestResult;
+  //   const passedMessages = Object.entries(messageCodes).filter( ([_, code]) => code === true);
+  //   const passedJsons = Object.entries(jsonCodes).filter( ([_, code]) => code === true);
+  //   const passedBehaviors = Object.entries(behaviorCodes).filter( ([_, code]) => code === true);
+  //   const passed = [...passedMessages, ...passedJsons, ...passedBehaviors];
+  //   return passed.map( ([key, _]) => key);
+  // }
+
+  // private failed(codes: Partial<ISuiteTestResult>): string[] {
+  //   const { messageCodes, jsonCodes, behaviorCodes } = codes as ISuiteTestResult;
+  //   const failedMessages = Object.entries(messageCodes).filter( ([_, code]) => code === false);
+  //   const failedJsons = Object.entries(jsonCodes).filter( ([_, code]) => code === false);
+  //   const failedBehaviors = Object.entries(behaviorCodes).filter( ([_, code]) => code === false);
+  //   const failed = [...failedMessages, ...failedJsons, ...failedBehaviors];
+  //   return failed.map( ([key, _]) => key);
+  // }
 
   abort() {
     this.socket.terminate();
@@ -273,6 +300,10 @@ export abstract class SuiteTest implements ISuiteTest {
   onNOTICE(notice: string) {
     //console.log(notice)
     this.notices.push(notice);
+  }
+
+  precheck(conditions: AssertWrap){
+    this.logger.warn(`${this.slug} precheck method was not implemented.`, 1);
   }
 
   test(methods: Expect) {

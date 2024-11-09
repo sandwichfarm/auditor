@@ -4,6 +4,7 @@ import { ISuite } from '#base/Suite.js';
 ;
 import { INip01Filter, RelayEventMessage } from '../interfaces/index.js';
 import { RangeIngestor } from "../ingestors/RangeIngestor.js";
+import { AssertWrap } from '#src/base/Expect.js';
 
 export class FilterRange extends SuiteTest implements ISuiteTest {
   readonly slug: string = 'FilterRange';
@@ -28,15 +29,16 @@ export class FilterRange extends SuiteTest implements ISuiteTest {
     this.timestampsReturned.push(note.created_at);
   }
 
-  test({behavior, conditions}){
+  precheck(conditions: AssertWrap){
     const sampleSufficient = this?.range?.since && this?.range?.until && this.range.since != this.range.until
     conditions.toBeOk(this?.range?.since && this?.range?.until && this.range.since != this.range.until, 'sample data to be sufficient')
+  }
 
+
+  test({behavior}){
     behavior.toEqual(this.timestampsReturned.length, this.limit, `returned number of events requested`);
     behavior.toBeOk(this.timestampsReturned.length > 0, 'returned at least one event');
-    if(sampleSufficient) {
-      behavior.toBeOk(this.withinRange(), 'return only events within range')
-    }
+    behavior.toBeOk(this.withinRange(), 'return only events within range')
   }
 
   private withinRange(): boolean {

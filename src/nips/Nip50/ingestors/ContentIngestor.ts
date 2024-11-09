@@ -16,15 +16,14 @@ export class ContentIngestor extends Ingestor {
     if(!isNaturalLanguage(note.content)) return;
     let term = null;
     let tries = 0;
-    while(term === null && tries < 10){
+    while(term === null && tries < 21){
       const word = this.getRandomWord(note.content, 4, 12);
       if(word) term = word;
       tries++;
     }
     if(term !== null) this.searches.add(term);
-    if(this.searches.size >= this.sampleSize) {
-      this.signal.emit('ingestor:abort');
-    }
+    if(this.searches.size >= this.sampleSize) 
+      this.complete();
   }
 
   poop(): string[] {

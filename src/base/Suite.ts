@@ -14,6 +14,9 @@ import { Expect } from './Expect.js';
 import { INip01RelayMessage } from '#src/nips/Nip01/interfaces/INip01RelayMessage.js';
 
 import Logger from './Logger.js';
+import { SuiteState } from './SuiteState.js';
+import { Ingestor } from './Ingestor.js';
+import { Sampler } from './Sampler.js';
 
 export type INipTesterCodes = Record<string, boolean | null>
 
@@ -52,17 +55,21 @@ export interface ISuite {
   pretest: boolean;
   testKey: string;  
   data: any;
+  state: SuiteState;
 
   setup(): Promise<void>;
   ready(): Promise<void>;
   reset(): void;  
   test(): Promise<ISuiteResult>;
-  logCode(type: 'behavior' | 'json' | 'message', code: string, result: boolean): void;
-  getCode(type: 'behavior' | 'json' | 'message', code: string): boolean | null | undefined;  
+
+  registerIngestors(ingestors: Ingestor[]): void;
+  registerIngestor(ingestor: Ingestor): void;
+  // logCode(type: 'behavior' | 'json' | 'message', code: string, result: boolean): void;
+  // getCode(type: 'behavior' | 'json' | 'message', code: string): boolean | null | undefined;  
   setupHandlers(): void;
   validateJson(key: string, json: GenericJson): void;
 
-  collectCodes(): Partial<ISuiteTestResult>;
+  // collectCodes(): Partial<ISuiteTestResult>;
   
   readonly socket: WebSocket;
 }
@@ -70,10 +77,13 @@ export interface ISuite {
 export abstract class Suite implements ISuite {
   private readonly testsDirectory: string = './tests';
   private expect: Expect;
+  private _state: SuiteState = new SuiteState();
   private logger: Logger = new Logger('@nostrwatch/auditor:Suite', {
     showTimer: false,
     showNamespace: false
   });
+  private _sampler: Sampler;
+  private _ingestors: Ingestor[] = [];
 
   public readonly slug: string = "NipXX";
 
@@ -90,9 +100,9 @@ export abstract class Suite implements ISuite {
   
   readonly behaviorComments: Record<string, string[]> = {};
   protected tests: string[] = [];
-  protected messageCodes: INipTesterCodes = {};
-  protected jsonCodes: INipTesterCodes = {};
-  protected behaviorCodes: INipTesterCodes = {};
+  // protected messageCodes: INipTesterCodes = {};
+  // protected jsonCodes: INipTesterCodes = {};
+  // protected behaviorCodes: INipTesterCodes = {};
   protected testers: Record<string, ISuiteTest> = {};
   protected _ready: boolean = false;
   protected totalEvents: number = 0;
@@ -120,6 +130,18 @@ export abstract class Suite implements ISuite {
 
   set messages(messages: Map<string, INip01RelayMessage[]>) {
     this._messages = messages;
+  }
+
+  get state(): SuiteState {
+    return this._state;
+  }
+
+  get sampler(): Sampler {
+    return this._sampler;
+  }
+
+  private set sampler(sampler: Sampler) {
+    this._sampler = sampler;
   }
 
   async setup(){
@@ -152,18 +174,35 @@ export abstract class Suite implements ISuite {
 
   reset(){
     this.resetKey();
-    this.resetCodes();
+    // this.resetCodes();
   }
 
   private resetKey(){
     this.testKey = "unset";
   }
 
-  private resetCodes(){
-    this.messageCodes = {};
-    this.jsonCodes = {};
-    this.behaviorCodes = {};
+  registerIngestors(ingestors: Ingestor[]) {
+    if(ingestors) {
+      ingestors.forEach(ingestor => this.registerIngestor(ingestor));
+    }
   }
+
+  registerIngestor(ingestor: Ingestor) {  
+    if(!this?.sampler)
+      this.initSampler();
+    this.sampler.registerIngestor(ingestor);
+  }
+
+  private initSampler(){
+    if(this.socket === undefined) throw new Error('socket of Suite must be set');
+    this.sampler = new Sampler(this.socket);
+  }
+
+  // private resetCodes(){
+  //   this.messageCodes = {};
+  //   this.jsonCodes = {};
+  //   this.behaviorCodes = {};
+  // }
 
   public async test(): Promise<ISuiteResult> {
     this.logger.info(`BEGIN: ${this.slug} Suite`, 1);
@@ -190,23 +229,23 @@ export abstract class Suite implements ISuite {
     return failed.length === 0;
   }
 
-  public logCode(type: ISuiteCodeTypes, plainLanguageCode: string, result: boolean): void {
-    const code = `${plainLanguageCode.replace(/ /g, "_").toUpperCase()}`;
-    this[`${type}Codes`][code] = result;
-  }
+  // public logCode(type: ISuiteCodeTypes, plainLanguageCode: string, result: boolean): void {
+  //   const code = `${plainLanguageCode.replace(/ /g, "_").toUpperCase()}`;
+  //   this[`${type}Codes`][code] = result;
+  // }
 
-  public getCode(type: ISuiteCodeTypes, plainLanguageCode: string): boolean | null | undefined {
-    const code = `${plainLanguageCode.replace(/ /g, "_").toUpperCase()}`;
-    return this[`${type}Codes`]?.[code] ?? null;
-  }
+  // public getCode(type: ISuiteCodeTypes, plainLanguageCode: string): boolean | null | undefined {
+  //   const code = `${plainLanguageCode.replace(/ /g, "_").toUpperCase()}`;
+  //   return this[`${type}Codes`]?.[code] ?? null;
+  // }
 
-  public collectCodes(): Partial<ISuiteTestResult> {
-    return {
-      messageCodes: this.messageCodes,
-      jsonCodes: this.jsonCodes,
-      behaviorCodes: this.behaviorCodes
-    }
-  }
+  // public collectCodes(): Partial<ISuiteTestResult> {
+  //   return {
+  //     messageCodes: this.messageCodes,
+  //     jsonCodes: this.jsonCodes,
+  //     behaviorCodes: this.behaviorCodes
+  //   }
+  // }
 
   setupHandlers(): void {
     this.socket.off()

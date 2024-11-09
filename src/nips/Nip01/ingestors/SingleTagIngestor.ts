@@ -19,9 +19,9 @@ export class SingleTagIngestor extends Ingestor {
     }
     if (singleLetterTags.length > 0) {
         this.tag = singleLetterTags[0];
-        this.signal.emit('ingestor:abort');
+        this.complete();
     }
-}
+  }
 
   poop(): string[] {
     return this.tag;

@@ -4,6 +4,7 @@ import { ISuite } from '#base/Suite.js';
 import { INip01Filter, Note, RelayEventMessage } from '../interfaces/index.js';
 import { SingleTagIngestor } from "../ingestors/SingleTagIngestor.js";
 import { truncate } from "#src/utils/string.js";
+import { AssertWrap } from '#src/base/Expect.js';
 
 export class FilterTags extends SuiteTest implements ISuiteTest {
   readonly slug: string = 'FilterTags';
@@ -30,8 +31,11 @@ export class FilterTags extends SuiteTest implements ISuiteTest {
     tags.filter(tag => tag[0].length === 1).forEach(tag => this.singleLetterTagsReturned.push(tag))
   }
 
-  test({behavior, conditions}){
+  precheck(conditions: AssertWrap): void {
     conditions.toBeOk(this.singleLetterTagsReturned.length > 0, 'sample data size is sufficient for test');
+  }
+
+  test({behavior}){
     const numTagsReturned = this.singleLetterTagsReturned.length
     const returnedOnlyTagsRequested = this.singleLetterTagsReturned.some((item: string[]) => {
       const key = this.ingestor.poop()[0] 

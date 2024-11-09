@@ -7,9 +7,8 @@ export class KindIngestor extends Ingestor {
   feed(note: Note): void {
     if(!this?.signal) throw new Error('Ingestor not registered with signal');
     this.kinds.add(note.kind);
-    if(this.kinds.size >= this.sampleSize) {
-      this.signal.emit('ingestor:abort');
-    }
+    if(this.kinds.size < this.sampleSize) return 
+    this.complete();
   }
 
   poop(): number[] {
