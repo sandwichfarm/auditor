@@ -1,8 +1,10 @@
 import assert from 'power-assert';
 import Logger from './Logger.js';
 import chalk from 'chalk';
+import { toCode } from '#src/utils/string.js';
 
 export interface IAssertWrapOptions {
+  type: string;
   verbose?: boolean;
 }
 
@@ -13,6 +15,7 @@ export type IExpectError = Record<string, string | boolean>
 export type IExpectErrors = IExpectError[]
 
 export interface IExpectResult {
+  type: string;
   code: string;
   message: string;
   pass: boolean;
@@ -21,6 +24,7 @@ export interface IExpectResult {
 }
 
 export const defaultExpectResult = {
+  type: "unset",
   code: "UNSET",
   message: "unset",
   pass: false,
@@ -28,6 +32,7 @@ export const defaultExpectResult = {
 }
 
 export class AssertWrap {
+  private _type: string;
   private _result: IExpectResults = [];
   private _verbose: boolean = false;
   private _skip: boolean = false;
@@ -36,13 +41,18 @@ export class AssertWrap {
     showNamespace: false
   });
 
-  constructor(options: IAssertWrapOptions = {}) {
-    if(options?.verbose !== undefined) this._verbose = options.verbose;
+  constructor({type, verbose}: IAssertWrapOptions) {
+    this._type = type
+    if(verbose !== undefined) this._verbose = verbose;
     if(this._verbose) {
       this.logger.registerLogger('pass', 'info', chalk.green.bold)
       this.logger.registerLogger('fail', 'info', chalk.redBright.bold)
       this.logger.registerLogger('skip', 'info', chalk.gray.bold)
     }
+  }
+
+  get type() {
+    return this._type;
   }
 
   set skip(skip: boolean) {
@@ -85,6 +95,10 @@ export class AssertWrap {
       return Math.round((this.passed.length / (this.result.length)) * 100);
   }
 
+  get defaultResult(){
+    return {...defaultExpectResult, type: this.type};
+  }
+
   private extractErrorDetails(error: any) {
     const { generatedMessage, code, actual, expected, operator } = error;
     return { generatedMessage, code, actual, expected, operator };
@@ -93,12 +107,14 @@ export class AssertWrap {
   private createProxy(assertionFn: (...args: any[]) => void) {
     return new Proxy((...args: any[]) => assertionFn(...args), {
       apply: (target, thisArg, argumentsList) => {
-        let result: IExpectResult = defaultExpectResult;
+        let result: IExpectResult = this.defaultResult;
         const message = argumentsList[argumentsList.length - 1];
+        const code = toCode(message);
         let pass = false
+        let error;
 
         if(this.skip) {
-          result = { ...result, message, skipped: true };
+          result = { ...result, code, message, skipped: true };
           this.result = result;
           if(this._verbose) this.logger.custom('skip', `${message}`, 3);
           return;
@@ -107,12 +123,11 @@ export class AssertWrap {
         try {
           Reflect.apply(target, thisArg, argumentsList);
           pass = true;
-          result = { ...result, message, pass };
           
         } catch (error) {
           error = this.extractErrorDetails(error);
-          result = { ...result, message, pass, error }; 
         }
+        result = { ...result, code, message, pass, error }; 
         if(this._verbose) this.logger.custom(pass? `pass`: `fail`, `${message}`, 3);
         this.result = result;
       },
@@ -135,19 +150,19 @@ export class AssertWrap {
 
 export class Expect { 
 
-  readonly keys: Array<keyof Expect> = ['conditions', 'message', 'json', 'behavior']
+  readonly keys: Array<keyof Expect> = ['message', 'json', 'behavior']
 
-  conditions: AssertWrap = new AssertWrap({ verbose: true})
-  message: AssertWrap = new AssertWrap()
-  json: AssertWrap = new AssertWrap()
-  behavior: AssertWrap = new AssertWrap({ verbose: true })
+  conditions: AssertWrap = new AssertWrap({ type: 'conditions', verbose: true})
+  message: AssertWrap = new AssertWrap({ type: 'message' })
+  json: AssertWrap = new AssertWrap({ type: 'json' })
+  behavior: AssertWrap = new AssertWrap({ type: 'conditions', verbose: true })
 z
   get passed(): IExpectResults {
-    return this.returnKeyAggregate('passed') as IExpectResults
+    return this.returnKeyAggregate('passed').filter(this.ignoreConditions) as IExpectResults
   }
 
   get failed(): IExpectResults {
-    return this.returnKeyAggregate('failed') as IExpectResults
+    return this.returnKeyAggregate('failed').filter(this.ignoreConditions) as IExpectResults
   }
 
   get skipped(): IExpectResults {
@@ -155,7 +170,7 @@ z
   }
 
   get results(): IExpectResults {
-    return this.returnKeyAggregate('result') as IExpectResults
+    return this.returnKeyAggregate('result').filter(this.ignoreConditions) as IExpectResults
   }
 
   get passrate(): number {
@@ -193,6 +208,10 @@ z
       res = [...res, ...arr]
     }
     return res;
+  }
+
+  private ignoreConditions(result: IExpectResult): boolean {
+    return result.type !== 'conditions';
   }
 
 }

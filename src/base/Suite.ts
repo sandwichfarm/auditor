@@ -17,6 +17,7 @@ import Logger from './Logger.js';
 import { SuiteState } from './SuiteState.js';
 import { Ingestor } from './Ingestor.js';
 import { Sampler } from './Sampler.js';
+import chalk from 'chalk';
 
 export type ISuiteSampleData = Record<string, any>;
 
@@ -96,13 +97,8 @@ export abstract class Suite implements ISuite {
 
   readonly messageValidators: Record<string, SchemaValidator<any>> = {};
   readonly jsonValidators: Record<string, SchemaValidator<any>> = {};
-  // jsons: string[] = [];
-  // behaviors: string[] = [];
   
   protected tests: string[] = [];
-  // protected messageCodes: INipTesterCodes = {};
-  // protected jsonCodes: INipTesterCodes = {};
-  // protected behaviorCodes: INipTesterCodes = {};
   protected testers: Record<string, ISuiteTest> = {};
   protected _ready: boolean = false;
   protected totalEvents: number = 0;
@@ -115,6 +111,7 @@ export abstract class Suite implements ISuite {
 
   constructor(ws: WebSocket, metaUrl: string) {
     this.ws = ws;
+    this.logger.registerLogger('notice', 'info', chalk.gray.italic);
     this.testsDirectory = this._calculateFilePath(metaUrl);
     this.signal.once("SUITE:READY", () => { this._ready = true });
     this.setup()
@@ -182,7 +179,6 @@ export abstract class Suite implements ISuite {
   }
 
   registerIngestor(testSlug: string, ingestor: Ingestor) {  
-    //console.log(`registering ingestor for ${testSlug}`);
     if(!this?.sampler)
       this.initSampler();
     ingestor.belongsTo = testSlug;
@@ -195,10 +191,8 @@ export abstract class Suite implements ISuite {
   }
 
   private toilet(){
-    //console.log(`flushing toilet ${this.ingestors.length}`);
     const poops: ISuiteSampleData = {};
     for(const ingestor of this.ingestors) {
-      //console.log('flushing poop', ingestor.parent, ingestor.poop());
       const testKey = ingestor.parent;
       poops[testKey] = ingestor.poop();
     }
@@ -223,7 +217,6 @@ export abstract class Suite implements ISuite {
     for(const test of Object.entries(this.testers)) {
       const [testName, suiteTest] = test;
       const results = await suiteTest.run();
-      //console.log(results)
       this.resulter.set('tests', testName, results);
       if(suiteTest?.data !== null) {
         this.resulter.set('data', { [testName]: suiteTest.data });
@@ -239,27 +232,9 @@ export abstract class Suite implements ISuite {
 
   evaluate() {
     const tests = this.resulter.get('tests');
-    const failed = Object.values(tests).filter( test => test.pass === false);
+    const failed = Object.values(tests).filter( test => test.pass === false );
     return failed.length === 0;
   }
-
-  // public logCode(type: ISuiteCodeTypes, plainLanguageCode: string, result: boolean): void {
-  //   const code = `${plainLanguageCode.replace(/ /g, "_").toUpperCase()}`;
-  //   this[`${type}Codes`][code] = result;
-  // }
-
-  // public getCode(type: ISuiteCodeTypes, plainLanguageCode: string): boolean | null | undefined {
-  //   const code = `${plainLanguageCode.replace(/ /g, "_").toUpperCase()}`;
-  //   return this[`${type}Codes`]?.[code] ?? null;
-  // }
-
-  // public collectCodes(): Partial<ISuiteTestResult> {
-  //   return {
-  //     messageCodes: this.messageCodes,
-  //     jsonCodes: this.jsonCodes,
-  //     behaviorCodes: this.behaviorCodes
-  //   }
-  // }
 
   setupHandlers(): void {
     this.socket.off()
@@ -268,21 +243,17 @@ export abstract class Suite implements ISuite {
 
   protected validateMessage(message: INip01RelayMessage): void {
     const key = message?.[0] ?? "unset"
-    if(!this?.messageValidators?.[key]){
-      this.logger.warn(`No validator found for message ${key}`, 2);
-      return;
-    }
+    // if(!this?.messageValidators?.[key]){
+    //   this.logger.warn(`No validator found for message ${key}`, 3);
+    //   return;
+    // }
     const isValid = this?.messageValidators?.[key]?.validate(message)
     this.expect.message.toBeOk(isValid, `message ${key} is valid: ${truncate(JSON.stringify(message))}`);
-    // if(this?.messageValidators?.[key]?.validate) {
-    //   this.logCode('message', key, this.messageValidators[key].validate(message));   
-    // }
   }
 
   validateJson(key: string, json: GenericJson) {
     key = key.toUpperCase();
     this.expect.json.toBeOk(this?.jsonValidators?.[key]?.validate, `json ${key} is valid`);
-    // this.logCode('json', key, this.jsonValidators[key].validate(json));
   }
 
   protected handleMessage<T extends Buffer>(messageBuffer: T): void {
@@ -293,6 +264,10 @@ export abstract class Suite implements ISuite {
 
     const messageArr = this.messages.get(key) ?? [];
     this.messages.set(key, [...messageArr, message]);
+
+    if(key === 'NOTICE') {
+      this.logger.custom('notice', message[1], 3);
+    }
 
     let suiteHandler = (this[`onMessage${capitalize(key)}` as keyof typeof this] as unknown as MessageHandler<T>)
     if (suiteHandler) {

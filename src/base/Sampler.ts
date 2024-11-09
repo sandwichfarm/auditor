@@ -58,7 +58,6 @@ export class Sampler {
         case 'EVENT': {
           const note = (message as RelayEventMessage)[2] as Note;
           this._totalSamples++;
-          // this.signal.emit('ingest', note);
           this.runIngestors(note);
           break;
         }
@@ -102,7 +101,7 @@ export class Sampler {
   }
   
   private sendRequest() {
-    const message = Nip01ClientMessageGenerator.REQ(this.subId, [{ limit: this._maximumSamples }]);
+    const message = Nip01ClientMessageGenerator.REQ(this.subId, [{ limit: this._maximumSamples, since: 0 }]);
     this.ws.send(message);
   }
   

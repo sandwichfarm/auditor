@@ -27,13 +27,13 @@ export class FilterKinds extends SuiteTest implements ISuiteTest {
     this.kindsSampled = this.getSamples<number[]>()
   }
 
+  precheck(conditions: AssertWrap){
+    conditions.toBeOk(this.kindsSampled.length > 0, 'sample data size is sufficient for test');
+  }
+
   onMessageEvent(message: RelayEventMessage){
     const note = message[2];
     this.kindsReturned.push(note.kind);
-  }
-
-  precheck(conditions: AssertWrap){
-    conditions.toBeOk(this.kindsReturned.length > 0, 'sample data size is sufficient for test');
   }
 
   test({behavior}){

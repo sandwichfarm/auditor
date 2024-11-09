@@ -4,6 +4,7 @@ import { ISuite } from '#base/Suite.js';
 
 import { INip01Filter, Note, RelayEventMessage } from '#nips/Nip01/interfaces/index.js';
 import { ContentIngestor } from '../ingestors/ContentIngestor.js';
+import { AssertWrap } from '#src/base/Expect.js';
 
 export interface Nip50Filter extends INip01Filter {
   search: string;
@@ -22,9 +23,8 @@ export class Search extends SuiteTest implements ISuiteTest {
 
   get filters(): Nip50Filter[] {
     const filters: Nip50Filter[] = [];
-    this.searchTermsToFilter = this.ingestor.poop() as string[];
-    if(this.searchTermsToFilter.length > 5){
-      this.searchTermsToFilter.length = 5;
+    if(this.searchTermsToFilter.length > 1){
+      this.searchTermsToFilter.length = 1;
     }
     for(const search of this.searchTermsToFilter){
       filters.push({ search, limit:1 });
@@ -37,12 +37,15 @@ export class Search extends SuiteTest implements ISuiteTest {
     this.contentsRecievedWithTerms.push(note.content);
   }
 
-  test({behavior, conditions}) {
+  digest(){
+    this.searchTermsToFilter = this.getSamples<string[]>();
+  }
+
+  precheck(conditions: AssertWrap): void {
     conditions.toBeOk(this.searchTermsToFilter.length > 0, 'data sample size is sufficient for test');
+  }
 
-    console.log(this.searchTermsToFilter)
-    console.log(this.contentsRecievedWithTerms)
-
+  test({behavior, conditions}) {
     const eventsContainedTerms = this.contentsRecievedWithTerms.every(content => {
       return this.searchTermsToFilter.some(term => {
         const regex = new RegExp(term, 'i'); 

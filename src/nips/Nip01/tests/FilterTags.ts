@@ -25,7 +25,7 @@ export class FilterTags extends SuiteTest implements ISuiteTest {
   }
 
   precheck(conditions: AssertWrap): void {
-    conditions.toBeOk(this.singleLetterTagsReturned.length > 0, 'sample data size is sufficient for test');
+    conditions.toBeOk(this.tagsSampled.length > 0, 'sample data size is sufficient for test');
   }
 
   get filters(): INip01Filter[] {
@@ -41,14 +41,13 @@ export class FilterTags extends SuiteTest implements ISuiteTest {
   }
 
   test({behavior}){
-    const numTagsReturned = this.singleLetterTagsReturned.length
     const returnedOnlyTagsRequested = this.singleLetterTagsReturned.some((item: string[]) => {
       const key = this.tagsSampled[0] 
       const value = this.tagsSampled[1]
       return item[0] === key && item[1] === value
     });
     behavior.toBeOk(returnedOnlyTagsRequested, `returned only requested tags: ${truncate(JSON.stringify(this.singleLetterTagsReturned))}`); 
-    behavior.toEqual(numTagsReturned, this.limit, 'returned only requested number of events');
+    behavior.toEqual(this.totalEvents, this.limit, 'returned only requested number of events');
   }
 }
 

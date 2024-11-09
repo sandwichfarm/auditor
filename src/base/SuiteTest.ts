@@ -38,21 +38,23 @@ export interface ISuiteTest {
 
 export interface ISuiteTestResult {
   testKey: string;
-  passing: boolean;
+  pass: boolean;
   passrate: number;
   passed: IExpectResults;
   failed: IExpectResults;
+  skipped: IExpectResults;
   notices: string[];
   errors: IExpectErrors;
 }
 
 export const defaultSuiteTestResult: ISuiteTestResult = {
   testKey: "unset",
-  passing: false,
+  pass: false,
   passrate: 0,
   passed: [],
   failed: [],
   notices: [],
+  skipped: [],
   errors: []
 }
 
@@ -87,6 +89,7 @@ export abstract class SuiteTest implements ISuiteTest {
     this.suite = suite;
     this.logger.registerLogger('pass', 'info', chalk.green.bold);
     this.logger.registerLogger('fail', 'info', chalk.redBright.bold);
+    this.logger.registerLogger('skipped', 'info', chalk.bgGray.yellow.bold);
   }
 
   get filters(): INip01Filter[] {
@@ -230,22 +233,28 @@ export abstract class SuiteTest implements ISuiteTest {
 
   private finish(): void {
     this.logger.debug(`testKey: ${this.suite.testKey}`, 2);
-    // const codes = this.suite.collectCodes();
-    const { passed, failed, passing, errors } = this.expect;
+    const { passing, passed, failed, skipped, errors } = this.expect;
     const passrate = passed.length / (passed.length + failed.length);
     const notices = this.notices.map(notice => notice[1]);
+    const pass = passing
     const result = {
       testKey: this.suite.testKey,
-      passing,
+      pass,
       passrate,
       passed,
+      skipped,
       failed,
       notices,
       errors
     } as ISuiteTestResult;
 
-    this.logger.custom(passed? 'pass': 'fail', `${this.slug}`, 2);
-
+    if(skipped.length) {
+      this.logger.custom('skipped', `${this.slug}`, 2);
+    }
+    else {
+      this.logger.custom(passed? 'pass': 'fail', `${this.slug}`, 2);
+    }
+    
     //console.log(`before resulter`)
     
     this.resulter.set(result as ISuiteTestResult);

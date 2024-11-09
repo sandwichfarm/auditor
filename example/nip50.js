@@ -1,6 +1,5 @@
 import { Auditor } from '../dist/server/index.js';
-import util from 'util';
-import https from 'https';
+import { shuffleArray } from '../dist/server/utils/array.js';
 
 const url = 'https://api.nostr.watch/v1/nip/50';
 
@@ -12,12 +11,12 @@ try {
     throw new Error(`HTTP error! Status: ${response.status}`);
   }
 
-  const relays = await response.json();
+  const relays = shuffleArray(await response.json());
 
   if (Array.isArray(relays)) {
     for (const relay of relays) {
       const auditor = new Auditor();
-      auditor.removeSuite('Nip01');
+      // auditor.removeSuite('Nip01');
       auditor.addSuite('Nip50') 
       const result = await auditor.test(relay);
       results.push(result);
