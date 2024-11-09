@@ -182,7 +182,7 @@ export abstract class Suite implements ISuite {
   }
 
   registerIngestor(testSlug: string, ingestor: Ingestor) {  
-    console.log(`registering ingestor for ${testSlug}`);
+    //console.log(`registering ingestor for ${testSlug}`);
     if(!this?.sampler)
       this.initSampler();
     ingestor.belongsTo = testSlug;
@@ -195,10 +195,10 @@ export abstract class Suite implements ISuite {
   }
 
   private toilet(){
-    console.log(`flushing toilet ${this.ingestors.length}`);
+    //console.log(`flushing toilet ${this.ingestors.length}`);
     const poops: ISuiteSampleData = {};
     for(const ingestor of this.ingestors) {
-      console.log('flushing poop', ingestor.parent, ingestor.poop());
+      //console.log('flushing poop', ingestor.parent, ingestor.poop());
       const testKey = ingestor.parent;
       poops[testKey] = ingestor.poop();
     }
@@ -223,7 +223,7 @@ export abstract class Suite implements ISuite {
     for(const test of Object.entries(this.testers)) {
       const [testName, suiteTest] = test;
       const results = await suiteTest.run();
-      console.log(results)
+      //console.log(results)
       this.resulter.set('tests', testName, results);
       if(suiteTest?.data !== null) {
         this.resulter.set('data', { [testName]: suiteTest.data });

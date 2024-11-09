@@ -41,6 +41,7 @@ export class AssertWrap {
     if(this._verbose) {
       this.logger.registerLogger('pass', 'info', chalk.green.bold)
       this.logger.registerLogger('fail', 'info', chalk.redBright.bold)
+      this.logger.registerLogger('skip', 'info', chalk.gray.bold)
     }
   }
 
@@ -99,6 +100,7 @@ export class AssertWrap {
         if(this.skip) {
           result = { ...result, message, skipped: true };
           this.result = result;
+          if(this._verbose) this.logger.custom('skip', `${message}`, 3);
           return;
         }
 
@@ -136,8 +138,8 @@ export class Expect {
   readonly keys: Array<keyof Expect> = ['conditions', 'message', 'json', 'behavior']
 
   conditions: AssertWrap = new AssertWrap({ verbose: true})
-  message: AssertWrap = new AssertWrap({ verbose: true })
-  json: AssertWrap = new AssertWrap({ verbose: true })
+  message: AssertWrap = new AssertWrap()
+  json: AssertWrap = new AssertWrap()
   behavior: AssertWrap = new AssertWrap({ verbose: true })
 z
   get passed(): IExpectResults {
@@ -185,7 +187,7 @@ z
     for(const expectKey of this.keys){
       const arr = (this[expectKey as keyof Expect] as AssertWrap)[key]
       if(!(arr instanceof Array)) {
-        console.log(`returnKeyAggregate: this[${expectKey}][${key}] is not an array`)
+        //console.log(`returnKeyAggregate: this[${expectKey}][${key}] is not an array`)
         continue;
       }
       res = [...res, ...arr]

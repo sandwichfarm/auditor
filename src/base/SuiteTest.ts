@@ -246,7 +246,7 @@ export abstract class SuiteTest implements ISuiteTest {
 
     this.logger.custom(passed? 'pass': 'fail', `${this.slug}`, 2);
 
-    console.log(`before resulter`)
+    //console.log(`before resulter`)
     
     this.resulter.set(result as ISuiteTestResult);
   }

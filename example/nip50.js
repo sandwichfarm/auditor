@@ -31,7 +31,7 @@ try {
 
 
 for( const result of results) {
-  console.log(result.relay, result.suites.Nip50.pass);
+  //console.log(result.relay, result.suites.Nip50.pass);
 }
 
 let totalChecked = 0;
@@ -39,7 +39,7 @@ let totalPassed = 0;
 let totalFailed = 0;
 
 for (const result of results) {
-  console.log(result.relay, result.suites.Nip50.pass);
+  //console.log(result.relay, result.suites.Nip50.pass);
 
   totalChecked++;
   if (result.suites.Nip50.pass) {
@@ -51,7 +51,7 @@ for (const result of results) {
 
 const percentagePassed = ((totalPassed / totalChecked) * 100).toFixed(2);
 
-console.log('Total checked:', totalChecked);
-console.log('Total passed:', totalPassed);
-console.log('Total failed:', totalFailed);
-console.log('Percentage passed:', percentagePassed + '%');
+//console.log('Total checked:', totalChecked);
+//console.log('Total passed:', totalPassed);
+//console.log('Total failed:', totalFailed);
+//console.log('Percentage passed:', percentagePassed + '%');
