@@ -1,7 +1,9 @@
 import { EventEmitter } from "tseep";
 
+export type ISuiteState = Map<string, any>
+
 export class SuiteState {
-    private state: Map<string, any> = new Map();
+    private state: ISuiteState = new Map();
     private emitter: EventEmitter;
 
     constructor(emitter?: EventEmitter){
@@ -9,11 +11,11 @@ export class SuiteState {
         this.emitter = emitter;
     }
     
-    set(key: string, value: any): void {
+    set<T>(key: string, value: T): void {
         this.state.set(key, value);
     }
     
-    get(key: string): any {
-        return this.state.get(key);
+    get<T>(key: string ): T | undefined {
+        return this.state.get(key) ?? undefined;
     }
 }

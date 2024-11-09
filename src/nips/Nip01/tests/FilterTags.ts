@@ -16,7 +16,7 @@ export class FilterTags extends SuiteTest implements ISuiteTest {
 
   constructor(suite: ISuite) {
     super(suite);
-    this.registerIngestor(new SingleTagIngestor(1));
+    this.suiteIngest(new SingleTagIngestor(1));
   }
 
   get filters(): INip01Filter[] {

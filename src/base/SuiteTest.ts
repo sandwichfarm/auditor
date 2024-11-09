@@ -3,7 +3,7 @@ import { SuiteTestResulter } from "#base/Resulter.js";
 import { Sampler } from "#base/Sampler.js";
 import { Ingestor } from "#base/Ingestor.js";
 
-import type { ISuite } from "#base/Suite.js";
+import type { ISuite, ISuiteSampleData } from "#base/Suite.js";
 import { generateSubId } from "#src/utils/nostr.js";
 import { ISuiteCodeTypes } from "./Suite.js";
 import { WebSocketWrapper as WebSocket } from "./WebSocketWrapper.js";
@@ -104,16 +104,20 @@ export abstract class SuiteTest implements ISuiteTest {
     return this.suite.state;
   }
 
+  get samples(): ISuiteSampleData {
+    return this.state.get('samples');
+  }
+
   protected get expect(): Expect {
     return this._expect;
   }
 
   suiteIngest(ingestor: Ingestor[] | Ingestor) {
     if(Array.isArray(ingestor)) {
-      this.suite.registerIngestors(ingestor);
+      this.suite.registerIngestors(this.slug, ingestor);
     }
     else {
-      this.suite.registerIngestor(ingestor);
+      this.suite.registerIngestor(this.slug, ingestor);
     }
   }
 

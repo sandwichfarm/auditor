@@ -18,6 +18,8 @@ import { SuiteState } from './SuiteState.js';
 import { Ingestor } from './Ingestor.js';
 import { Sampler } from './Sampler.js';
 
+export type ISuiteSampleData = Record<string, any>;
+
 export type INipTesterCodes = Record<string, boolean | null>
 
 export type GenericJson = Record<string, any>
@@ -62,8 +64,8 @@ export interface ISuite {
   reset(): void;  
   test(): Promise<ISuiteResult>;
 
-  registerIngestors(ingestors: Ingestor[]): void;
-  registerIngestor(ingestor: Ingestor): void;
+  registerIngestors(testSlug: string, ingestors: Ingestor[]): void;
+  registerIngestor(testSlug: string, ingestor: Ingestor): void;
   // logCode(type: 'behavior' | 'json' | 'message', code: string, result: boolean): void;
   // getCode(type: 'behavior' | 'json' | 'message', code: string): boolean | null | undefined;  
   setupHandlers(): void;
@@ -181,21 +183,33 @@ export abstract class Suite implements ISuite {
     this.testKey = "unset";
   }
 
-  registerIngestors(ingestors: Ingestor[]) {
+  registerIngestors(testSlug: string, ingestors: Ingestor[]) {
     if(ingestors) {
-      ingestors.forEach(ingestor => this.registerIngestor(ingestor));
+      ingestors.forEach(ingestor => {
+        this.registerIngestor(testSlug, ingestor)
+      });
     }
   }
 
-  registerIngestor(ingestor: Ingestor) {  
+  registerIngestor(testSlug: string, ingestor: Ingestor) {  
     if(!this?.sampler)
       this.initSampler();
+    ingestor.belongsTo = testSlug;
     this.sampler.registerIngestor(ingestor);
   }
 
   private initSampler(){
     if(this.socket === undefined) throw new Error('socket of Suite must be set');
     this.sampler = new Sampler(this.socket);
+  }
+
+  private toilet(){
+    const poops: ISuiteSampleData = {};
+    for(const ingestor of this._ingestors) {
+      const testKey = ingestor.parent;
+      poops[testKey] = ingestor.poop();
+    }
+    this.state.set<ISuiteSampleData>('samples', poops); 
   }
 
   // private resetCodes(){
@@ -206,7 +220,13 @@ export abstract class Suite implements ISuite {
 
   public async test(): Promise<ISuiteResult> {
     this.logger.info(`BEGIN: ${this.slug} Suite`, 1);
+    
     await this.ready();
+    if(this?.sampler?.samplable) {
+      await this.sampler.sample();
+      this.toilet();
+    }
+
     for(const test of Object.entries(this.testers)) {
       const [testName, suiteTest] = test;
       const results = await suiteTest.run();

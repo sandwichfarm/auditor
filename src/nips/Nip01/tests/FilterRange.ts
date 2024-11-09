@@ -16,7 +16,7 @@ export class FilterRange extends SuiteTest implements ISuiteTest {
 
   constructor(suite: ISuite) {
     super(suite);
-    this.registerIngestor(new RangeIngestor(30));
+    this.suiteIngest(new RangeIngestor(30));
   }
 
   get filters(): INip01Filter[] {

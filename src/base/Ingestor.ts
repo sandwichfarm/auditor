@@ -5,11 +5,20 @@ export abstract class Ingestor {
   protected signal?: EventEmitter;
   protected sampleSize: number = 10; 
   private _completed: boolean = false;
+  private _parent?: string;
   
   constructor(sampleSize?: number) {
     if(sampleSize){
       this.sampleSize = sampleSize;
     }
+  }
+
+  get parent(): string {
+    return this._parent;
+  }
+
+  set belongsTo(parent: string) {
+    this._parent = parent;
   }
   
   abstract feed(note: Note): void;
