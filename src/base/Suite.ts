@@ -11,7 +11,7 @@ import type { ISuiteTest, ISuiteTestResult } from "./SuiteTest.js";
 
 import { capitalize, truncate } from '#utils/string.js';
 import { Expect } from './Expect.js';
-import { INip01RelayMessage } from '#src/nips/Nip01/interfaces/INip01RelayMessage.js';
+import type { INip01RelayMessage } from '#src/nips/Nip01/interfaces/INip01RelayMessage.js';
 
 import Logger from './Logger.js';
 import { SuiteState } from './SuiteState.js';
@@ -51,7 +51,6 @@ export interface ISuite {
   readonly jsonValidators: Record<string, SchemaValidator<any>>;
   // readonly jsons: string[];
   // readonly behaviors: string[];
-  readonly behaviorComments: Record<string, string[]>;
   readonly requires: string[];
 
   pretest: boolean;
@@ -100,7 +99,6 @@ export abstract class Suite implements ISuite {
   // jsons: string[] = [];
   // behaviors: string[] = [];
   
-  readonly behaviorComments: Record<string, string[]> = {};
   protected tests: string[] = [];
   // protected messageCodes: INipTesterCodes = {};
   // protected jsonCodes: INipTesterCodes = {};
@@ -146,20 +144,12 @@ export abstract class Suite implements ISuite {
     this._sampler = sampler;
   }
 
+  get ingestors(): Ingestor[] {
+    return this.sampler.ingestors
+  }
+
   async setup(){
     this.expect = new Expect();
-    // this.messages.forEach( key => {
-    //   this.messageCodes[key] = null;
-    // })
-
-    // this.jsons.forEach( key => {
-    //   this.jsonCodes[key] = null;
-    // })
-
-    // this.behaviors.forEach( key => {
-    //   this.behaviorCodes[key] = null;
-    //   this.behaviorComments[key] = [];
-    // })
 
     const tests: DynamicallyImportedNipTests = await import(this.testsDirectory);
     for (const [key, cl] of Object.entries(tests)) {
@@ -192,6 +182,7 @@ export abstract class Suite implements ISuite {
   }
 
   registerIngestor(testSlug: string, ingestor: Ingestor) {  
+    console.log(`registering ingestor for ${testSlug}`);
     if(!this?.sampler)
       this.initSampler();
     ingestor.belongsTo = testSlug;
@@ -204,8 +195,10 @@ export abstract class Suite implements ISuite {
   }
 
   private toilet(){
+    console.log(`flushing toilet ${this.ingestors.length}`);
     const poops: ISuiteSampleData = {};
-    for(const ingestor of this._ingestors) {
+    for(const ingestor of this.ingestors) {
+      console.log('flushing poop', ingestor.parent, ingestor.poop());
       const testKey = ingestor.parent;
       poops[testKey] = ingestor.poop();
     }
@@ -230,6 +223,7 @@ export abstract class Suite implements ISuite {
     for(const test of Object.entries(this.testers)) {
       const [testName, suiteTest] = test;
       const results = await suiteTest.run();
+      console.log(results)
       this.resulter.set('tests', testName, results);
       if(suiteTest?.data !== null) {
         this.resulter.set('data', { [testName]: suiteTest.data });

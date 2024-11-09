@@ -3,16 +3,9 @@ import { Note } from '#nips/Nip01/interfaces/Note.js';
 import { isNaturalLanguage } from '#utils/discriminators.js'
 
 export class ContentIngestor extends Ingestor {
-  readonly sampleSize: number = 5;
   private searches = new Set<string>();
 
-  constructor(sampleSize?: number) {
-    super();
-    if(sampleSize) this.sampleSize = sampleSize;
-  }
-
   feed(note: Note): void {
-    if(!this?.signal) throw new Error('Ingestor not registered with signal');
     if(!isNaturalLanguage(note.content)) return;
     let term = null;
     let tries = 0;

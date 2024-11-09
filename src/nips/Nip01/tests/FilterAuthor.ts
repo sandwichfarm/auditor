@@ -11,7 +11,7 @@ export class FilterAuthor extends SuiteTest implements ISuiteTest {
 
   maxEvents: number = 3;
   authorsReturned: string[] = [];
-  author: string = '';
+  author?: string;
   limit: number = 1;
 
   constructor(suite: ISuite) {
@@ -20,19 +20,23 @@ export class FilterAuthor extends SuiteTest implements ISuiteTest {
   }
 
   get filters(): INip01Filter[] {
-    this.author = this.ingestor.poop()[0]
     return [{ authors: [ this.author ], limit: this.limit }];
+  }
+
+  digest(){
+    const samples = this.getSamples<string[]>()
+    this.author = samples[0];
+  }
+
+  precheck(conditions: AssertWrap){
+    conditions.toBeOk(typeof this.author === 'string', 'sampled data is sufficient for test');
+    conditions.toBeOk(is64CharHex(this.author), 'author hex pubkey looks valid');
   }
 
   onMessageEvent(message: RelayEventMessage){
     const note = message?.[2]; 
     if(!note) return;
     this.authorsReturned.push(note.pubkey);
-  }
-
-  precheck(conditions: AssertWrap){
-    conditions.toBeOk(typeof this.author === 'string', 'sampled data is sufficient for test');
-    conditions.toBeOk(is64CharHex(this.author), 'author hex pubkey looks valid');
   }
 
   test({behavior}){

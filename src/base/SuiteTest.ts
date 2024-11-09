@@ -1,22 +1,19 @@
+import chalk from "chalk";
 
 import { SuiteTestResulter } from "#base/Resulter.js";
 import { Sampler } from "#base/Sampler.js";
 import { Ingestor } from "#base/Ingestor.js";
-
+import Logger from '#base/Logger.js';
 import type { ISuite, ISuiteSampleData } from "#base/Suite.js";
 import { generateSubId } from "#src/utils/nostr.js";
-import { ISuiteCodeTypes } from "./Suite.js";
+
 import { WebSocketWrapper as WebSocket } from "./WebSocketWrapper.js";
 
-import Logger from '#base/Logger.js';
-import { Nip01ClientMessageGenerator } from "#src/nips/Nip01/index.js";
-import { RelayEventMessage } from "#src/nips/Nip01/interfaces/RelayEventMessage.js";
+import { AssertWrap, Expect, type IExpectErrors, type IExpectResults } from "./Expect.js";
 
-import { AssertWrap, Expect, IExpectErrors, IExpectResult, IExpectResults } from "./Expect.js";
+import { Nip01ClientMessageGenerator } from  "#src/nips/Nip01/utils/generators.js";
+import type { INip01Filter, Note, RelayEventMessage } from "#src/nips/Nip01/interfaces/index.js";
 
-import { INip01Filter } from "#src/nips/Nip01/interfaces/Filter.js";
-import { Note } from "#src/nips/Nip01/interfaces/Note.js";
-import chalk from "chalk";
 import { SuiteState } from "./SuiteState.js";
 
 export type CompleteOnType = "off" | "maxEvents" | "EOSE";
@@ -104,12 +101,16 @@ export abstract class SuiteTest implements ISuiteTest {
     return this.suite.state;
   }
 
-  get samples(): ISuiteSampleData {
-    return this.state.get('samples');
-  }
-
   protected get expect(): Expect {
     return this._expect;
+  }
+
+  getSamples<T>(): T | undefined {
+    return this.state.get('samples')?.[this.slug];
+  }
+
+  digest() {
+    this.logger.debug(`${this.slug} digest method was not implemented.`, 1);
   }
 
   suiteIngest(ingestor: Ingestor[] | Ingestor) {
@@ -165,16 +166,16 @@ export abstract class SuiteTest implements ISuiteTest {
     };
   }
 
-  async screen(conditions: AssertWrap): Promise<void> {}
-
   async prepare() {
     this.REQ(this.filters)
     await this.testable();
   }
 
   async run() {
+    if(this.slug === 'unset') throw new Error('slug of SuiteTest must be set');
+  
     this.logger.info(`BEGIN: ${this.slug}`, 2);
-    
+  
     if(this?.sampler?.samplable) {
       await this.sampler.sample();
     }
@@ -188,11 +189,10 @@ export abstract class SuiteTest implements ISuiteTest {
       this.newSubId();
     }
     
-    if(this.slug === 'unset') throw new Error('slug of SuiteTest must be set');
-
     this.timeoutBegin();
-    await this.screen(this.expect.conditions)
-    this.state.set('okConditions', this.expect.conditions.passed);
+    this.digest();
+    this.precheck(this.expect.conditions);
+    this.expect.evaluateConditions(true);
     await this.prepare();
     this.finish();
     return this.resulter.result
@@ -233,7 +233,7 @@ export abstract class SuiteTest implements ISuiteTest {
     // const codes = this.suite.collectCodes();
     const { passed, failed, passing, errors } = this.expect;
     const passrate = passed.length / (passed.length + failed.length);
-    const notices = this.notices;
+    const notices = this.notices.map(notice => notice[1]);
     const result = {
       testKey: this.suite.testKey,
       passing,
@@ -245,6 +245,8 @@ export abstract class SuiteTest implements ISuiteTest {
     } as ISuiteTestResult;
 
     this.logger.custom(passed? 'pass': 'fail', `${this.slug}`, 2);
+
+    console.log(`before resulter`)
     
     this.resulter.set(result as ISuiteTestResult);
   }
@@ -307,7 +309,7 @@ export abstract class SuiteTest implements ISuiteTest {
   }
 
   precheck(conditions: AssertWrap){
-    this.logger.warn(`${this.slug} precheck method was not implemented.`, 1);
+    this.logger.debug(`${this.slug} precheck method was not implemented.`, 1);
   }
 
   test(methods: Expect) {

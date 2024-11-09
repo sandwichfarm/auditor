@@ -133,7 +133,7 @@ export class AssertWrap {
 
 export class Expect { 
 
-  readonly keys: Array<keyof Expect> = ['conditions', 'message', 'json', 'behavior', 'errors']
+  readonly keys: Array<keyof Expect> = ['conditions', 'message', 'json', 'behavior']
 
   conditions: AssertWrap = new AssertWrap({ verbose: true})
   message: AssertWrap = new AssertWrap({ verbose: true })
@@ -168,16 +168,27 @@ z
     return this.returnKeyAggregate('errors') as IExpectErrors;
   }
 
-  skip(keys: (keyof Expect)[] ): void {
+  evaluateConditions(skip: boolean = false): boolean {
+    if(this.conditions.passing) return true;
+    if(skip) this.skip(['behavior'])
+  }
+
+  private skip(keys: (keyof Expect)[] ): void {
     for(const key of keys){
       this[key].skip = true;
     }
   }
 
   private returnKeyAggregate(key: keyof AssertWrap): IExpectResults | IExpectErrors {
+    // console.log(`returnKeyAggregate: ${key}`)
     let res = []
-    for(const key of this.keys){
-      res = [...res, ...(this[key as keyof Expect] as AssertWrap)[key] ]
+    for(const expectKey of this.keys){
+      const arr = (this[expectKey as keyof Expect] as AssertWrap)[key]
+      if(!(arr instanceof Array)) {
+        console.log(`returnKeyAggregate: this[${expectKey}][${key}] is not an array`)
+        continue;
+      }
+      res = [...res, ...arr]
     }
     return res;
   }

@@ -14,8 +14,9 @@
     },
     "created_at": {
       "type": "integer",
-      "minimum": 0,
-      "description": "Unix timestamp in seconds"
+      "minimum": 1000000000,
+      "maximum": 9999999999,
+      "description": "Unix timestamp in seconds (10-digit timestamp, not in milliseconds)"
     },
     "kind": {
       "type": "integer",

@@ -19,8 +19,11 @@ export class FilterRange extends SuiteTest implements ISuiteTest {
     this.suiteIngest(new RangeIngestor(30));
   }
 
+  digest(){
+    this.range = this.selectRangeFromSample(this.getSamples<number[]>());
+  }
+
   get filters(): INip01Filter[] {
-    this.range = this.selectRangeFromSample(this.ingestor.poop());
     return [{ ...this.range, limit: this.limit }];
   }
   
@@ -30,8 +33,15 @@ export class FilterRange extends SuiteTest implements ISuiteTest {
   }
 
   precheck(conditions: AssertWrap){
-    const sampleSufficient = this?.range?.since && this?.range?.until && this.range.since != this.range.until
-    conditions.toBeOk(this?.range?.since && this?.range?.until && this.range.since != this.range.until, 'sample data to be sufficient')
+    const bothRangeValuesAreNumbers = typeof this?.range?.since === 'number' && typeof this?.range?.until === 'number';
+    const rangeValuesAreDifferent = this?.range?.since != this?.range?.until;
+    const untilIsGreaterThanSince = this?.range?.until > this?.range?.since;
+    const sampleSufficient = bothRangeValuesAreNumbers && rangeValuesAreDifferent && untilIsGreaterThanSince;
+    conditions.toBeOk(untilIsGreaterThanSince, 'until is greater than since');
+    conditions.toBeOk(bothRangeValuesAreNumbers, 'since and until are numbers');
+    conditions.toNotEqual(this?.range?.since, this?.range?.until, 'since and until are different values');
+    conditions.toBeOk(sampleSufficient, 'sample data to be sufficient')
+    
   }
 
 

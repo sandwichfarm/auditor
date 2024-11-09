@@ -1,14 +1,12 @@
-import type { WebSocketWrapper as WebSocket } from './WebSocketWrapper.js';
-
 import { EventEmitter } from "tseep";
 
-import { Ingestor } from "./Ingestor.js";
+import { Ingestor } from "#base/Ingestor.js";
+import Logger from "#base/Logger.js";  
+import type { WebSocketWrapper as WebSocket } from '#base/WebSocketWrapper.js';
 
-import { Nip01ClientMessageGenerator } from "#src/nips/Nip01/index.js";
+import { Nip01ClientMessageGenerator } from "#src/nips/Nip01/utils/generators.js";
 import type { Note, RelayEventMessage } from "#src/nips/Nip01/interfaces/index.js";
 import { generateSubId } from "#utils/nostr.js";  
-
-import Logger from "#base/Logger.js";  
 
 export class Sampler {
   private ws: WebSocket;
@@ -60,7 +58,8 @@ export class Sampler {
         case 'EVENT': {
           const note = (message as RelayEventMessage)[2] as Note;
           this._totalSamples++;
-          this.signal.emit('ingest', note);
+          // this.signal.emit('ingest', note);
+          this.runIngestors(note);
           break;
         }
         case 'EOSE': {

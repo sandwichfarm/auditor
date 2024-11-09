@@ -17,7 +17,7 @@ export class Search extends SuiteTest implements ISuiteTest {
   
   constructor(suite: ISuite) {
     super(suite);
-    this.registerIngestor(new ContentIngestor());
+    this.suiteIngest(new ContentIngestor(5));
   }
 
   get filters(): Nip50Filter[] {
