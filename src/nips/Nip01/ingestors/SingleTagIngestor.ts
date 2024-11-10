@@ -8,8 +8,6 @@ export class SingleTagIngestor extends Ingestor {
   feed(note: Note): void {
     if (this.tags.size >= this.sampleSize)
         return;
-    if (!this?.signal)
-        throw new Error('Ingestor not registered with signal');
     let singleLetterTags = [];
     try {
         singleLetterTags = note.tags.filter((tag: string[]) => tag[0].length === 1);
@@ -19,9 +17,9 @@ export class SingleTagIngestor extends Ingestor {
     }
     if (singleLetterTags.length > 0) {
         this.tag = singleLetterTags[0];
-        this.signal.emit('ingestor:abort');
+        this.complete();
     }
-}
+  }
 
   poop(): string[] {
     return this.tag;

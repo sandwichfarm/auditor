@@ -38,7 +38,7 @@ export class ValidateSchema extends SuiteTest implements ISuiteTest {
       })
       .catch((e) => {
         //console.log('catch',  e.message)
-        this.resulter.set('reason', e.message)
+        // this.resulter.set('reason', e.message)
         this.resulter.set('pass', false)
       });
     this.data = data

@@ -1,4 +1,3 @@
-import { Nip01ClientMessageGenerator } from "#src/nips/Nip01";
 import { WebSocket } from "ws";
 import Logger from '#base/Logger.js';
 import { INip01RelayMessage } from "#src/nips/Nip01/interfaces";
