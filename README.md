@@ -51,7 +51,7 @@ const results = audit.test(relay)
 _**`not yet implemnented`**_ Load your own suite or overload a built-in suite with your own. (overloading individuals tests in a suite is not yet supported)
 ```js
 import Auditor from "@nostrwatch/auditor"
-import MyNip01Test as Nip01 from from "./my-nip01-test.js"
+import Nip01 from from "./my-nip01-test.js"
 
 const relay = "wss://relay.damus.io"
 const audit = new Auditor(options)
